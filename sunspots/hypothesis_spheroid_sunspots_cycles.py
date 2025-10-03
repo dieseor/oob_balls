@@ -33,22 +33,19 @@ def custom_GCV(M_response, structure, X_train, y_train, param_grid, seed=5, n_sp
     - cv_results: list of dicts with CV performance
     """
     grid = list(itertools.product(param_grid['min_split_size'],
-                                  param_grid['mtry']))
-
+                                  param_grid['mtry']))#
     cv_results = []
     kf = KFold(n_splits=n_splits, shuffle=True, random_state=seed)
 
     for min_split_size, mtry in grid:
-        fold_errors = []
-
+        fold_errors = []#
         for train_index, val_index in kf.split(X_train):
             X_tr, X_val = X_train[train_index], X_train[val_index]
             y_tr_raw, y_val_raw = y_train[train_index], y_train[val_index]
 
             # Define metric and structure
             y_tr = MetricData(M_response, y_tr_raw.reshape(-1, 3))
-            y_val = MetricData(M_response, y_val_raw.reshape(-1, 3))
-
+            y_val = MetricData(M_response, y_val_raw.reshape(-1, 3))#
             # Define forest
             base = d_Tree(split_type='2means', impurity_method='medoid', structure=structure,
                         min_split_size=min_split_size, mtry=mtry)
@@ -66,16 +63,15 @@ def custom_GCV(M_response, structure, X_train, y_train, param_grid, seed=5, n_sp
             'mtry': mtry,
             'cv_error': avg_error
         })
-        print(f"  CV - min_split_size={min_split_size}, mtry={mtry}, CV error={avg_error:.6f}")
-
+        print(f"  CV - min_split_size={min_split_size}, mtry={mtry}, CV error={avg_error:.6f}")#
     best = min(cv_results, key=lambda x: x['cv_error'])
     print(f"  Best CV params: {best}")
-
     # Final refit on full training data
     y_train_metric = MetricData(M_response, y_train.reshape(-1, 3))
     final_tree = d_Tree(split_type='2means', impurity_method='medoid',
                       structure=structure,
-                      min_split_size=best['min_split_size'], mtry=best['mtry'])
+                      #min_split_size=best['min_split_size'], mtry=best['mtry'])
+                      min_split_size=1, mtry=1)
     final_forest = BaggedRegressor(estimator=final_tree, n_estimators=200,
                                    bootstrap_fraction=1, bootstrap_replace=True,
                                    seed=seed, n_jobs=12)
@@ -159,10 +155,10 @@ def train_and_predict(X_train, X_test, y_train, y_test, a, c, seed=5):
     print(f"  Performing CV for hyperparameter tuning...")
     
     forest, best_params, cv_results = custom_GCV(
-        M_response=M, 
-        structure=structure, 
-        X_train=X_train, 
-        y_train=y_train_spheroid, 
+        M_response=M,
+        structure=structure,
+        X_train=X_train,
+        y_train=y_train_spheroid,
         param_grid=param_grid, 
         seed=seed, 
         n_splits=5
@@ -200,7 +196,7 @@ def train_and_predict(X_train, X_test, y_train, y_test, a, c, seed=5):
     distances = M.d(MetricData(M, test_points_spheroid), preds)
     type_II_coverage = np.mean(distances <= oob_quantile)
     
-    return sphere_preds, point_errors, test_point_areas, type_II_coverage, best_params
+    return sphere_preds, point_errors, test_point_areas, type_II_coverage, oob_quantile, best_params
 
 def task(cyc):
     filename = f'sunspots_births_{cyc}_deaths.csv'
@@ -226,9 +222,9 @@ def task(cyc):
         (0.7, 1),
         (0.8, 1),
         (0.9, 1),
-        (1, 1.1),
-        (1, 1.25),
-        (1, 1.5),
+        (1.1, 1),
+        (1.25, 1),
+        (1.5, 1),
     ]
 
     results = {
@@ -241,24 +237,29 @@ def task(cyc):
         'point_areas': {},
         'point_coverage': {},
         'best_params': {},
-        'config_params': []
+        'config_params': [],
+        'oob_quantile': {}
     }
 
     # Get sphere predictions (baseline)
-    sphere_preds, sphere_errors, sphere_areas, sphere_coverage, sphere_best_params = train_and_predict(X_train, X_test, y_train, y_test, 1, 1)
+    sphere_preds, sphere_errors, sphere_areas, sphere_coverage, sphere_best_params, oob_quantile = train_and_predict(X_train, X_test, y_train, y_test, 1, 1)
+    # sphere_preds, sphere_errors, sphere_areas, sphere_coverage, oob_quantile = train_and_predict(X_train, X_test, y_train, y_test, 1, 1)
+
     results['predictions']['sphere'] = sphere_preds
     results['point_errors']['sphere'] = sphere_errors
     results['point_areas']['sphere'] = sphere_areas
     results['point_coverage']['sphere'] = sphere_coverage
     results['best_params']['sphere'] = sphere_best_params
+    results['oob_quantile']['sphere'] = oob_quantile
 
     # For each spheroid configuration
     for a, c in configs:  # exclude sphere case which we already did
         print(f"Processing spheroid with a={a}, c={c}")
         
         # Train and get predictions
-        spheroid_preds, spheroid_errors, spheroid_areas, spheroid_coverage, spheroid_best_params = train_and_predict(X_train, X_test, y_train, y_test, a, c)
-        
+        spheroid_preds, spheroid_errors, spheroid_areas, spheroid_coverage, spheroid_best_params, oob_quantile = train_and_predict(X_train, X_test, y_train, y_test, a, c)
+        # spheroid_preds, spheroid_errors, spheroid_areas, spheroid_coverage, oob_quantile = train_and_predict(X_train, X_test, y_train, y_test, a, c)
+
         # Store predictions, errors, areas, coverage, and best params
         config_key = f'spheroid_{a}_{c}'
         results['predictions'][config_key] = spheroid_preds
@@ -266,6 +267,8 @@ def task(cyc):
         results['point_areas'][config_key] = spheroid_areas
         results['point_coverage'][config_key] = spheroid_coverage
         results['best_params'][config_key] = spheroid_best_params
+        results['oob_quantile'][config_key] = oob_quantile
+
         
         results['config_params'].append((a, c))
 
@@ -555,7 +558,7 @@ def generate_latex_table(combined_results, save_to_file=True):
 
 
 if __name__ == "__main__":
-    cycles = [22, 21, 23]
+    cycles = [21, 22, 23]
 
     # Collect results from all cycles
     all_cycle_results = []
