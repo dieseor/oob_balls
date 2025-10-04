@@ -15,9 +15,6 @@ from matplotlib.patches import Ellipse
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.lines import Line2D
 from joblib import Parallel, delayed
-from sklearn.model_selection import train_test_split
-import sys
-import contextlib
 
 # Import pyfrechet for metric spaces
 try:
@@ -29,6 +26,82 @@ except ImportError:
 
 # Set the root directory
 ROOT_DIR = Path(__file__).parent
+
+# ================================
+# HELPER FUNCTION FOR DUAL FORMAT SAVING
+# ================================
+
+def save_plot_dual_format(fig, output_dir, filename_base, dpi=300, transparent=True, **kwargs):
+    """
+    Save a plot in both TIFF and PNG formats.
+    
+    Parameters:
+    -----------
+    fig : matplotlib.figure.Figure
+        The figure to save
+    output_dir : Path
+        The output directory for results_plots
+    filename_base : str
+        The filename without extension (e.g., 'my_plot')
+    dpi : int
+        DPI for both formats
+    transparent : bool
+        Whether to use transparent background
+    **kwargs : dict
+        Additional arguments for savefig
+    """
+    # Create directories
+    output_dir = Path(output_dir)
+    tiff_dir = output_dir.parent / 'TIFF_imgs'
+    output_dir.mkdir(exist_ok=True)
+    tiff_dir.mkdir(exist_ok=True)
+    
+    # Extract DPI from kwargs if present
+    if 'dpi' in kwargs:
+        dpi = kwargs['dpi']
+    
+    # Save PNG in results_plots
+    png_filename = output_dir / f"{filename_base}.png"
+    fig.savefig(png_filename, format='png', dpi=dpi, transparent=transparent, **kwargs)
+    
+    # Save TIFF in TIFF_imgs
+    tiff_filename = tiff_dir / f"{filename_base}.tiff"
+    # For TIFF, add compression
+    tiff_kwargs = kwargs.copy()
+    tiff_kwargs['pil_kwargs'] = {"compression": "tiff_lzw"}
+    fig.savefig(tiff_filename, format='tiff', dpi=dpi, transparent=transparent, **tiff_kwargs)
+
+    
+def save_plot_png_format(fig, output_dir, filename_base, dpi=300, transparent=True, **kwargs):
+    """
+    Save a plot only in PNG format.
+    
+    Parameters:
+    -----------
+    fig : matplotlib.figure.Figure
+        The figure to save
+    output_dir : Path
+        The output directory for results_plots
+    filename_base : str
+        The filename without extension (e.g., 'my_plot')
+    dpi : int
+        DPI for both formats
+    transparent : bool
+        Whether to use transparent background
+    **kwargs : dict
+        Additional arguments for savefig
+    """
+    # Create directories
+    output_dir = Path(output_dir)
+    output_dir.mkdir(exist_ok=True)
+    
+    # Extract DPI from kwargs if present
+    if 'dpi' in kwargs:
+        dpi = kwargs['dpi']
+    
+    # Save PNG in results_plots
+    png_filename = output_dir / f"{filename_base}.png"
+    fig.savefig(png_filename, format='png', dpi=dpi, transparent=transparent, **kwargs)
 
 # ================================
 # EUCLIDEAN SPACE FUNCTIONS
@@ -636,8 +709,8 @@ def euclidean_type_ii_analysis(coverage_df, save_individual=True):
                 fig_individual.tight_layout()
                 
                 # Save the individual plot
-                filename = output_dir / f'euclidean_type_ii_coverage_sigma_{str(sigma).replace(".", "")}_alpha_{str(alpha_level)[2:]}.png'
-                fig_individual.savefig(filename, bbox_inches='tight', format='png', dpi=125, transparent=True)
+                filename_base = f'euclidean_type_ii_coverage_sigma_{str(sigma).replace(".", "")}_alpha_{str(alpha_level)[2:]}'
+                save_plot_png_format(fig_individual, output_dir, filename_base, dpi=300, bbox_inches='tight')
                 plt.close(fig_individual)  # Close individual figure to free memory
 
     fig.tight_layout()
@@ -1168,11 +1241,11 @@ def sphere_H2_type_ii_analysis(pb_coverage_df, space, save_individual=True):
             
             # Save the individual plot
             if space == 'sphere':
-                filename = output_dir / f'sphere_type_ii_coverage_{str(alpha_level)[2:]}.png'
+                filename_base = f'sphere_type_ii_coverage_{str(alpha_level)[2:]}'
             else:  # space == 'hyperboloid'
-                filename = output_dir / f'hyperboloid_type_ii_coverage_{str(alpha_level)[2:]}.png'
+                filename_base = f'hyperboloid_type_ii_coverage_{str(alpha_level)[2:]}'
 
-            fig_individual.savefig(filename, bbox_inches='tight', format='png', dpi=125, transparent=True)
+            save_plot_png_format(fig_individual, output_dir, filename_base, dpi=300, bbox_inches='tight')
             plt.close(fig_individual)  # Close individual figure to free memory
 
 def sphere_H2_type_iv_analysis(pb_coverage_df, space, save_individual=True):
@@ -1342,11 +1415,11 @@ def sphere_H2_type_iv_analysis(pb_coverage_df, space, save_individual=True):
             
             # Save the individual plot
             if space == 'sphere':
-                filename = output_dir / f'sphere_type_iv_coverage_{str(alpha_level)[2:]}.png'
+                filename_base = f'sphere_type_iv_coverage_{str(alpha_level)[2:]}'
             else:  # space == 'hyperboloid'
-                filename = output_dir / f'hyperboloid_type_iv_coverage_{str(alpha_level)[2:]}.png'
+                filename_base = f'hyperboloid_type_iv_coverage_{str(alpha_level)[2:]}'
 
-            fig_individual.savefig(filename, bbox_inches='tight', format='png', dpi=125, transparent=True)
+            save_plot_png_format(fig_individual, output_dir, filename_base, dpi=300, bbox_inches='tight')
             plt.close(fig_individual)  # Close individual figure to free memory
 
 def sphere_H2_radius_analysis(pb_coverage_df, space='sphere', save_individual=True):
@@ -1516,7 +1589,7 @@ def sphere_H2_radius_analysis(pb_coverage_df, space='sphere', save_individual=Tr
                 elif alpha_level == 0.05:
                     ax.set_ylim(0.15, 0.85)
                 else:
-                    ax.set_ylim(0.15, 0.6)
+                    ax.set_ylim(0.1, 0.6)
 
             elif space == 'hyperboloid':
                 if alpha_level == 0.01:
@@ -1542,8 +1615,8 @@ def sphere_H2_radius_analysis(pb_coverage_df, space='sphere', save_individual=Tr
             fig_individual.tight_layout()
             
             # Save the individual plot
-            filename = output_dir / f'{space}_radius_vs_kappa_{str(alpha_level)[2:]}.png'
-            fig_individual.savefig(filename, bbox_inches='tight', format='png', dpi=125, transparent=True)
+            filename_base = f'{space}_radius_vs_kappa_{str(alpha_level)[2:]}'
+            save_plot_png_format(fig_individual, output_dir, filename_base, dpi=300, bbox_inches='tight')
             plt.close(fig_individual)  # Close individual figure to free memory
 
 # ================================
@@ -2076,8 +2149,8 @@ def spd_type_ii_analysis(SPD_coverage_df, save_individual=True):
             fig_individual.tight_layout()
             
             # Save the individual plot
-            filename = output_dir / f'ai_df_5_15_II_coverage_{str(alpha_level)[2:]}.png'
-            fig_individual.savefig(filename, bbox_inches='tight', format='png', dpi=125, transparent=True)
+            filename_base = f'ai_df_5_15_II_coverage_{str(alpha_level)[2:]}'
+            save_plot_png_format(fig_individual, output_dir, filename_base, dpi=300, bbox_inches='tight')
             plt.close(fig_individual)  # Close individual figure to free memory
 
     # LC plots - Create 1x3 subplot figure
@@ -2222,8 +2295,8 @@ def spd_type_ii_analysis(SPD_coverage_df, save_individual=True):
             fig_individual.tight_layout()
             
             # Save the individual plot
-            filename = output_dir / f'lc_df_5_15_II_coverage_{str(alpha_level)[2:]}.png'
-            fig_individual.savefig(filename, bbox_inches='tight', format='png', dpi=125, transparent=True)
+            filename_base = f'lc_df_5_15_II_coverage_{str(alpha_level)[2:]}'
+            save_plot_png_format(fig_individual, output_dir, filename_base, dpi=300, bbox_inches='tight')
             plt.close(fig_individual)  # Close individual figure to free memory
 
     # LE plots - Create 1x3 subplot figure
@@ -2369,8 +2442,8 @@ def spd_type_ii_analysis(SPD_coverage_df, save_individual=True):
         
         # Save the individual plot
 
-        filename = output_dir / f'le_df_5_15_II_coverage_{str(alpha_level)[2:]}.png'
-        fig_individual.savefig(filename, bbox_inches='tight', format='png', dpi=125, transparent=True)
+        filename_base = f'le_df_5_15_II_coverage_{str(alpha_level)[2:]}'
+        save_plot_png_format(fig_individual, output_dir, filename_base, dpi=300, bbox_inches='tight')
         plt.close(fig_individual)  # Close individual figure to free memory
 
 # ================================
@@ -2534,8 +2607,8 @@ def euclidean_type_iv_analysis(coverage_df, sigma_value='0.9', save_individual=T
                 fig_individual.tight_layout()
                 
                 # Save the individual plot
-                filename = output_dir / f'euclidean_type_iv_coverage_sigma_{str(sigma).replace(".", "")}_alpha_{str(alpha_level)[2:]}.png'
-                fig_individual.savefig(filename, bbox_inches='tight', format='png', dpi=125, transparent=True)
+                filename_base = f'euclidean_type_iv_coverage_sigma_{str(sigma).replace(".", "")}_alpha_{str(alpha_level)[2:]}'
+                save_plot_png_format(fig_individual, output_dir, filename_base, dpi=300, bbox_inches='tight')
                 plt.close(fig_individual)  # Close individual figure to free memory
 
     fig.tight_layout()
@@ -3203,8 +3276,8 @@ def spd_type_iv_analysis(SPD_coverage_df, save_individual=True):
             fig_individual.tight_layout()
             
             # Save the individual plot
-            filename = output_dir / f'ai_df_5_15_IV_coverage_{str(alpha_level)[2:]}.png'
-            fig_individual.savefig(filename, bbox_inches='tight', format='png', dpi=125, transparent=True)
+            filename_base = f'ai_df_5_15_IV_coverage_{str(alpha_level)[2:]}'
+            save_plot_png_format(fig_individual, output_dir, filename_base, dpi=300, bbox_inches='tight')
             plt.close(fig_individual)  # Close individual figure to free memory
 
     # LC plots - Create 1x3 subplot figure
@@ -3348,8 +3421,8 @@ def spd_type_iv_analysis(SPD_coverage_df, save_individual=True):
         fig_individual.tight_layout()
         
         # Save the individual plot
-        filename = output_dir / f'lc_df_5_15_IV_coverage_{str(alpha_level)[2:]}.png'
-        fig_individual.savefig(filename, bbox_inches='tight', format='png', dpi=125, transparent=True)
+        filename_base = f'lc_df_5_15_IV_coverage_{str(alpha_level)[2:]}'
+        save_plot_png_format(fig_individual, output_dir, filename_base, dpi=300, bbox_inches='tight')
         plt.close(fig_individual)  # Close individual figure to free memory
 
     # LE plots - Create 1x3 subplot figure
@@ -3492,8 +3565,8 @@ def spd_type_iv_analysis(SPD_coverage_df, save_individual=True):
         fig_individual.tight_layout()
         
         # Save the individual plot
-        filename = output_dir / f'le_df_5_15_IV_coverage_{str(alpha_level)[2:]}.png'
-        fig_individual.savefig(filename, bbox_inches='tight', format='png', dpi=125, transparent=True)
+        filename_base = f'le_df_5_15_IV_coverage_{str(alpha_level)[2:]}'
+        save_plot_png_format(fig_individual, output_dir, filename_base, dpi=300, bbox_inches='tight')
         plt.close(fig_individual)  # Close individual figure to free memory
 
 def spd_radius_analysis(SPD_coverage_df, save_individual=True):
@@ -3644,8 +3717,8 @@ def spd_radius_analysis(SPD_coverage_df, save_individual=True):
                 fig_individual.tight_layout()
                 
                 # Save the individual plot
-                filename = output_dir / f'{metric}_SPD_radius_vs_df_{alpha_level:.2f}.png'
-                fig_individual.savefig(filename, bbox_inches='tight', format='png', dpi=125, transparent=True)
+                filename_base = f'{metric}_SPD_radius_vs_df_{alpha_level:.2f}'
+                save_plot_png_format(fig_individual, output_dir, filename_base, dpi=300, bbox_inches='tight')
                 plt.close(fig_individual)  # Close individual figure to free memory
 
 # ================================
@@ -3803,8 +3876,8 @@ def create_hyperboloid_visualization():
     # Save the plot
     output_dir = ROOT_DIR / 'results_plots'
     output_dir.mkdir(exist_ok=True)
-    filename = output_dir / 'hyperboloid_curve_visualization.png'
-    fig.savefig(filename, bbox_inches='tight', dpi=200, format='png', transparent=True)
+    filename_base = 'hyperboloid_curve_visualization'
+    save_plot_png_format(fig, output_dir, filename_base, dpi=300, bbox_inches='tight')
     plt.show()
 
 def create_sphere_visualization():
@@ -3867,8 +3940,8 @@ def create_sphere_visualization():
     # Save the plot
     output_dir = ROOT_DIR / 'results_plots'
     output_dir.mkdir(exist_ok=True)
-    filename = output_dir / 'sphere_curve_visualization.png'
-    fig.savefig(filename, bbox_inches='tight', format='png', dpi=75, transparent=True)
+    filename_base = 'sphere_curve_visualization'
+    save_plot_png_format(fig, output_dir, filename_base, dpi=300, bbox_inches='tight')
     plt.show()
 
 def create_spd_interpolation_plot():
@@ -3904,21 +3977,30 @@ def create_spd_interpolation_plot():
     
     ax.set_aspect('equal', 'box')
     ax.set_xlim(-0.2, 2.15)
-    ax.set_ylim(0.2, 0.8)
+    ax.set_ylim(0.31, 0.69)
     ax.grid(False)
     ax.set_xticks([])
     ax.set_yticks([])
     ax.set_axis_off()
     ax.axhline(y=0.5, linestyle='dashed', color='black', linewidth=0.5)
     
-    plt.tight_layout()
+    # Remove all margins and padding
+    fig.subplots_adjust(left=0, right=1, top=1, bottom=0)
     
     # Save the plot
     output_dir = ROOT_DIR / 'results_plots'
     output_dir.mkdir(exist_ok=True)
-    filename = output_dir / 'SPD_interpolation_plot.pdf'
-    fig.savefig(filename, bbox_inches='tight', format='pdf', transparent=True)
+    filename_base = 'SPD_interpolation_plot'
+    
+    # Save in PNG and TIFF formats with no padding
+    save_plot_png_format(fig, output_dir, filename_base, dpi=300, bbox_inches='tight', pad_inches=0)
+    
+    # Also save in PDF format with no padding
+    pdf_filename = output_dir / f"{filename_base}.pdf"
+    fig.savefig(pdf_filename, format='pdf', bbox_inches='tight', pad_inches=0, transparent=True)
+    
     plt.show()
+    plt.close(fig) 
 
 def create_sphere_prediction_balls():
     """Create sphere population prediction balls visualization."""
@@ -4019,8 +4101,8 @@ def create_sphere_prediction_balls():
     # Save the plot
     output_dir = ROOT_DIR / 'results_plots'
     output_dir.mkdir(exist_ok=True)
-    filename = output_dir / 'prediction_balls_sphere.png'
-    fig.savefig(filename, bbox_inches='tight', format='png', dpi=75, transparent=True)
+    filename_base = 'prediction_balls_sphere'
+    save_plot_png_format(fig, output_dir, filename_base, dpi=300, bbox_inches='tight')
     plt.show()
 
 def create_hyperboloid_prediction_balls():
@@ -4128,8 +4210,8 @@ def create_hyperboloid_prediction_balls():
     # Save the plot
     output_dir = ROOT_DIR / 'results_plots'
     output_dir.mkdir(exist_ok=True)
-    filename = output_dir / 'prediction_balls_hyperboloid.png'
-    fig.savefig(filename, bbox_inches='tight', dpi=75, format='png', transparent=True)
+    filename_base = 'prediction_balls_hyperboloid'
+    save_plot_png_format(fig, output_dir, filename_base, dpi=300, bbox_inches='tight')
     plt.show()
 
 def load_sunspot_data():
@@ -4216,10 +4298,10 @@ def create_sunspot_trajectories_plot(use_predictions=False, save_plot=True):
     
     # Set filename based on plot type
     if use_predictions:
-        filename = 'sunspot_predicted_trajectories.png'
+        filename = 'sunspot_predicted_trajectories.tiff'
     else:
-        filename = 'sunspot_trajectories.png'
-    
+        filename = 'sunspot_trajectories.tiff'
+
     # Create figure
     fig = plt.figure()
     fig.set_size_inches(7, 7)
@@ -4298,14 +4380,15 @@ def create_sunspot_trajectories_plot(use_predictions=False, save_plot=True):
     if save_plot:
         output_dir = Path("results_plots")
         output_dir.mkdir(exist_ok=True)
-        plt.savefig(output_dir / filename, format='png', dpi=75, bbox_inches='tight', transparent=True)
-    
+        filename_base = Path(filename).stem  # Remove extension if present
+        save_plot_png_format(fig, output_dir, filename_base, dpi=300, bbox_inches='tight')
+
     plt.show()
 
 
 def create_sunspot_spheroid_balls_plot(data_file='sunspots/results/hypothesis_results_cycle_23.npy',
-                                      save_filename='sunspots_spheroid_balls.png', 
-                                      a=0.5, c=1.0, figsize=(7, 7), dpi=75):
+                                      save_filename='sunspots_spheroid_balls.tiff', 
+                                      a=0.5, c=1.0, figsize=(7, 7), dpi=300):
     """
     Create a visualization of OOB prediction balls comparing spherical and spheroidal metrics.
     
@@ -4396,8 +4479,9 @@ def create_sunspot_spheroid_balls_plot(data_file='sunspots/results/hypothesis_re
     fig.tight_layout()
     
     # Save the figure
-    output_path = ROOT_DIR / 'results_plots' / save_filename
-    fig.savefig(output_path, format='png', dpi=dpi, bbox_inches='tight')
+    output_dir = ROOT_DIR / 'results_plots'
+    filename_base = Path(save_filename).stem  # Remove extension if present
+    save_plot_png_format(fig, output_dir, filename_base, dpi=dpi, bbox_inches='tight')
 
     plt.show()
 
@@ -4412,7 +4496,7 @@ def create_sunspot_plots():
     print("\n=== Creating sunspot prediction balls plot ===")
     create_sunspot_spheroid_balls_plot(
         data_file='sunspots/results/hypothesis_results_cycle_23.npy',
-        save_filename='sunspots_spheroid_balls.png',
+        save_filename='sunspots_spheroid_balls.tiff',
         a=0.5, 
         c=1.0, 
         figsize=(7, 7), 
@@ -4435,7 +4519,7 @@ def create_all_paper_plots():
     create_sphere_prediction_balls()
 
     print("\n=== Creating hyperboloid prediction balls ===")
-    create_hyperboloid_prediction_balls()
+    #create_hyperboloid_prediction_balls()
     
     print("\n=== Creating SPD ball visualizations ===")
     create_spd_affine_invariant_ball()
@@ -4542,8 +4626,8 @@ def create_spd_affine_invariant_ball():
     # Save to results_plots directory
     output_dir = ROOT_DIR / "results_plots"
     output_dir.mkdir(exist_ok=True)
-    fig.savefig(output_dir / "SPD_AI_ball.png", format="png", dpi=75, 
-               bbox_inches='tight', transparent=True)
+    filename_base = "SPD_AI_ball"
+    save_plot_png_format(fig, output_dir, filename_base, dpi=300, bbox_inches='tight')
     plt.show()
     return fig
 
@@ -4619,8 +4703,8 @@ def create_spd_log_euclidean_ball():
     # Save to results_plots directory
     output_dir = ROOT_DIR / "results_plots"
     output_dir.mkdir(exist_ok=True)
-    fig.savefig(output_dir / "SPD_LE_ball.png", format="png", dpi=75, 
-               bbox_inches='tight', transparent=True)
+    filename_base = "SPD_LE_ball"
+    save_plot_png_format(fig, output_dir, filename_base, dpi=300, bbox_inches='tight')
     plt.show()
     return fig
 
@@ -4694,8 +4778,8 @@ def create_spd_log_cholesky_ball():
     # Save to results_plots directory
     output_dir = ROOT_DIR / "results_plots"
     output_dir.mkdir(exist_ok=True)
-    fig.savefig(output_dir / "SPD_LC_ball.png", format="png", dpi=75, 
-               bbox_inches='tight', transparent=True)
+    filename_base = "SPD_LC_ball"
+    save_plot_png_format(fig, output_dir, filename_base, dpi=300, bbox_inches='tight')
     plt.show()
     return fig
 
@@ -5082,7 +5166,7 @@ def simulate_frechet_loss(d_array, Sigma_array, matrices, n_samples=10000, plot_
     ax.set_xticks(ticks=[-1, 0, 1, 2], labels=[r"$\boldsymbol{M}_{\mathrm{Ext}}$", r"$\boldsymbol{M}_{\mathrm{AI}}$", r"$\boldsymbol{M}_{\mathrm{LC}}$", r"$\boldsymbol{M}_{\mathrm{Ext}}$"])
     ax.tick_params(labelsize=17)
     ax.set_xlabel(r"$\boldsymbol{M}(t)$", fontsize=17)
-    ax.set_ylabel("Normalized Fréchet Loss", fontsize=17)
+    ax.set_ylabel("Normalized Fréchet loss", fontsize=17)
     ax.legend(loc='upper center', ncol=2, fontsize=14)
     ax.grid(True)
     fig.tight_layout()
@@ -5092,11 +5176,12 @@ def simulate_frechet_loss(d_array, Sigma_array, matrices, n_samples=10000, plot_
     output_dir.mkdir(exist_ok=True)
     
     if plot_title_suffix:
-        filename = f"frechet_mean_spd_{plot_title_suffix}.png"
+        filename = f"frechet_mean_spd_{plot_title_suffix}.tiff"
     else:
-        filename = "frechet_mean_spd_analysis.png"
+        filename = "frechet_mean_spd_analysis.tiff"
     
-    fig.savefig(output_dir / filename, bbox_inches='tight', dpi=75)
+    fig.savefig(output_dir / filename, bbox_inches='tight', dpi=75, #1200
+               format="tiff", transparent=True, pil_kwargs={"compression": "tiff_lzw"})
     plt.show()
     return fig
 
@@ -5378,7 +5463,8 @@ def plot_spheroid(a, c, test_points, M_spheroid):
     # Save to results_plots directory
     output_dir = ROOT_DIR / "results_plots"
     output_dir.mkdir(exist_ok=True)
-    fig_spheroid.savefig(output_dir / f'spheroid_a{a:.2f}_c{c:.2f}.png', format='png', dpi=50, bbox_inches='tight', transparent=True)
+    filename_base = f'spheroid_a{a:.2f}_c{c:.2f}'
+    save_plot_png_format(fig_spheroid, output_dir, filename_base, dpi=300, bbox_inches='tight')
     plt.close()
 
 
@@ -5418,7 +5504,8 @@ def plot_sphere(a, c, test_points, M_spheroid):
     # Save to results_plots directory
     output_dir = ROOT_DIR / "results_plots"
     output_dir.mkdir(exist_ok=True)
-    fig_sphere.savefig(output_dir / f'sphere_a{a:.2f}_c{c:.2f}.png', format='png', dpi=50, bbox_inches='tight', transparent=True)
+    filename_base = f'sphere_a{a:.2f}_c{c:.2f}'
+    save_plot_png_format(fig_sphere, output_dir, filename_base, dpi=300, bbox_inches='tight')
     plt.close()
 
 
@@ -5641,7 +5728,7 @@ def create_sunspot_boxplot(data_dict, metric='coverage', save_filename=None,
         output_dir = ROOT_DIR / "results_plots"
         output_dir.mkdir(exist_ok=True)
         fig.savefig(output_dir / save_filename, bbox_inches='tight', 
-                   format='png', dpi=75, transparent=True)
+                   format='tiff', dpi=300, transparent=True, pil_kwargs={"compression": "tiff_lzw"})
     
     plt.show()
     return fig
@@ -5663,14 +5750,14 @@ def create_sunspot_boxplots():
     coverage_fig = create_sunspot_boxplot(
         data_dict, 
         metric='coverage', 
-        save_filename='sunspots_ii_cov.png'
+        save_filename='sunspots_ii_cov.tiff'
     )
     
     # Create area boxplot
     area_fig = create_sunspot_boxplot(
         data_dict, 
         metric='area', 
-        save_filename='sunspots_area.png'
+        save_filename='sunspots_area.tiff'
     )
     
     return coverage_fig, area_fig
@@ -5930,8 +6017,8 @@ def ratio_compare_radius_dimension(save_path):
         ax.grid(False)
 
         fig.tight_layout()
-        filename = os.path.join(save_path, f'relative_error_sc_pb_radius_{str(alpha_level)[2:]}.png')
-        fig.savefig(filename, bbox_inches='tight', format='png', transparent=True)
+        filename_base = f'relative_error_sc_pb_radius_{str(alpha_level)[2:]}'
+        save_plot_png_format(fig, save_path, filename_base, dpi=300, bbox_inches='tight')
         plt.show()
 
 def ratio_compare_volume_dimension(save_path):
@@ -6111,8 +6198,8 @@ def ratio_compare_volume_dimension(save_path):
             ax1.set_ylim(-50, 100)    # Adjust for dimension 1
             ax2.set_ylim(-150, 3000)  # Adjust for dimensions 5,10
         
-        filename = os.path.join(save_path, f'relative_error_sc_pb_volume_{str(alpha_level)[2:]}.png')
-        fig.savefig(filename, bbox_inches='tight', format='png', dpi = 125, transparent=True)
+        filename_base = f'relative_error_sc_pb_volume_{str(alpha_level)[2:]}'
+        save_plot_png_format(fig, save_path, filename_base, dpi=300, bbox_inches='tight')
         plt.show()
 
 def process_radius_volume_data():
