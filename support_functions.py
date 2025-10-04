@@ -4298,9 +4298,12 @@ def create_sunspot_trajectories_plot(use_predictions=False, save_plot=True):
     
     # Set filename based on plot type
     if use_predictions:
-        filename = 'sunspot_predicted_trajectories.tiff'
+        # filename = 'sunspot_predicted_trajectories.tiff'
+        filename = 'sunspot_predicted_trajectories.png'
+
     else:
-        filename = 'sunspot_trajectories.tiff'
+        # filename = 'sunspot_trajectories.tiff'
+        filename = 'sunspot_trajectories.png'
 
     # Create figure
     fig = plt.figure()
@@ -4387,8 +4390,11 @@ def create_sunspot_trajectories_plot(use_predictions=False, save_plot=True):
 
 
 def create_sunspot_spheroid_balls_plot(data_file='sunspots/results/hypothesis_results_cycle_23.npy',
-                                      save_filename='sunspots_spheroid_balls.tiff', 
+                                      save_filename='sunspots_spheroid_balls.png', 
                                       a=0.5, c=1.0, figsize=(7, 7), dpi=300):
+    
+                                      # save_filename='sunspots_spheroid_balls.tiff', 
+                                      # a=0.5, c=1.0, figsize=(7, 7), dpi=300):
     """
     Create a visualization of OOB prediction balls comparing spherical and spheroidal metrics.
     
@@ -4496,7 +4502,8 @@ def create_sunspot_plots():
     print("\n=== Creating sunspot prediction balls plot ===")
     create_sunspot_spheroid_balls_plot(
         data_file='sunspots/results/hypothesis_results_cycle_23.npy',
-        save_filename='sunspots_spheroid_balls.tiff',
+        #save_filename='sunspots_spheroid_balls.tiff',
+        save_filename='sunspots_spheroid_balls.png',
         a=0.5, 
         c=1.0, 
         figsize=(7, 7), 
@@ -5175,13 +5182,20 @@ def simulate_frechet_loss(d_array, Sigma_array, matrices, n_samples=10000, plot_
     output_dir = ROOT_DIR / "results_plots"
     output_dir.mkdir(exist_ok=True)
     
-    if plot_title_suffix:
-        filename = f"frechet_mean_spd_{plot_title_suffix}.tiff"
-    else:
-        filename = "frechet_mean_spd_analysis.tiff"
+    # if plot_title_suffix:
+    #     filename = f"frechet_mean_spd_{plot_title_suffix}.tiff"
+    # else:
+    #     filename = "frechet_mean_spd_analysis.tiff"
     
-    fig.savefig(output_dir / filename, bbox_inches='tight', dpi=75, #1200
-               format="tiff", transparent=True, pil_kwargs={"compression": "tiff_lzw"})
+    if plot_title_suffix:
+        filename = f"frechet_mean_spd_{plot_title_suffix}.png"
+    else:
+        filename = "frechet_mean_spd_analysis.png"
+
+    fig.savefig(output_dir / filename, bbox_inches='tight', dpi=75)
+
+    # fig.savefig(output_dir / filename, bbox_inches='tight', dpi=75, #1200
+    #           format="tiff", transparent=True, pil_kwargs={"compression": "tiff_lzw"})
     plt.show()
     return fig
 
@@ -5750,14 +5764,16 @@ def create_sunspot_boxplots():
     coverage_fig = create_sunspot_boxplot(
         data_dict, 
         metric='coverage', 
-        save_filename='sunspots_ii_cov.tiff'
+        #save_filename='sunspots_ii_cov.tiff'
+        save_filename='sunspots_ii_cov.png'
     )
     
     # Create area boxplot
     area_fig = create_sunspot_boxplot(
         data_dict, 
         metric='area', 
-        save_filename='sunspots_area.tiff'
+        save_filename='sunspots_area.png'
+        # save_filename='sunspots_area.tiff'
     )
     
     return coverage_fig, area_fig
