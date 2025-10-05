@@ -5192,7 +5192,7 @@ def simulate_frechet_loss(d_array, Sigma_array, matrices, n_samples=10000, plot_
     else:
         filename = "frechet_mean_spd_analysis.png"
 
-    fig.savefig(output_dir / filename, bbox_inches='tight', dpi=75)
+    fig.savefig(output_dir / filename, bbox_inches='tight', dpi=75, transparent=True)
 
     # fig.savefig(output_dir / filename, bbox_inches='tight', dpi=75, #1200
     #           format="tiff", transparent=True, pil_kwargs={"compression": "tiff_lzw"})
