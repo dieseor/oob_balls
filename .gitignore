@@ -29,3 +29,7 @@ env/
 *.swp
 *.swo
 .DS_Store
+
+# Generated simulation datasets/results
+simulations_*/results/
+simulations_*/**/*data*/
