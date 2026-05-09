@@ -30,6 +30,11 @@ env/
 *.swo
 .DS_Store
 
-# Generated simulation datasets/results
+# Generated simulation outputs/datasets
 simulations_*/results/
-simulations_*/**/*data*/
+simulations_*/TypeIIdata/
+simulations_*/TypeIIIdata/
+simulations_*/type_i_data/
+simulations_*/type_ii_data/
+simulations_*/type_iii_data/
+simulations_*/volume_data/
