@@ -126,7 +126,7 @@ class BaggedRegressor(WeightingRegressor):
                 est_weights = estimator.weights_for(x)
                 # Count how many trees there are for which x is OOB. Notice that now, we aggregate only the weights of these trees, not over all the trees. 
                 count += 1
-            weights[mask] += est_weights
+            np.add.at(weights, mask, est_weights)  # accumulates repeated bootstrap indices (weights[mask] += applies only one)
         return self._normalize_weights(weights / count, clip=True), x_idx
 
     def weights_for(self, x) -> np.ndarray:
@@ -135,7 +135,7 @@ class BaggedRegressor(WeightingRegressor):
         for (mask, estimator) in self.estimators:
             # Note that each base estimator has its own .weights_for() method
             est_weights = estimator.weights_for(x)
-            weights[mask] += est_weights
+            np.add.at(weights, mask, est_weights)  # accumulates repeated bootstrap indices (weights[mask] += applies only one)
         return self._normalize_weights(weights / self.n_estimators, clip=True)
     
     def _oob_predict_one(self, x):
