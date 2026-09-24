@@ -65,7 +65,10 @@ class BaggedRegressor(WeightingRegressor):
             estimator.seed = est_seed
         # Clone does a deep copy of the model in an estimator without actually copying attached data
         # It yields a new estimator with the same parameters that has not been fit on any data
-        return (mask, estimator.fit(X[mask, :], y[mask]))
+        estimator.fit(X[mask, :], y[mask])
+        if estimator.precompute_distances:
+            estimator.y_train_.distances = None
+        return (mask, estimator)
 
     def _fit_par(self, X, y: MetricData):
         """
