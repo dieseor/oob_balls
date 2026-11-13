@@ -28,6 +28,47 @@ Below is a simple scheme of the distribution of the library:
 └── requirements.txt            # Python (3.9.9) dependencies.
 ```
 
+## Dependencies
+
+The documented environment uses Python **3.9.9**. The example below uses the versions listed in `requirements.txt` for NumPy **1.26.4**, SciPy **1.13.1**, scikit-learn **1.3.1**, geomstats **2.8.0**, joblib **1.4.0**, tqdm **4.67.1**, and geopy **2.4.1** (imported by `pyfrechet.metric_spaces`). `requirements.txt` is a full environment listing, including non-Python packages. Use it as a version reference when preparing the environment.
+
+## Minimal example with spherical responses
+
+Run this code in a Python session started from the repository root to use the bundled `pyfrechet/`. It follows the fitting and OOB-radius calculation in `simulations_sphere/sphere_results.py`, using a small synthetic sample and 50 trees.
+
+```python
+import numpy as np
+from pyfrechet.metric_spaces import MetricData, Sphere
+from pyfrechet.regression.bagged_regressor import BaggedRegressor
+from pyfrechet.regression.trees import Tree
+
+# Scalar covariates and noisy unit-vector responses on the sphere S^2.
+rng = np.random.default_rng(0)
+X = rng.uniform(-0.5, 0.5, size=(50, 1))
+Y = np.column_stack((np.cos(X[:, 0]), np.sin(X[:, 0]), np.zeros(len(X))))
+Y += 0.05 * rng.normal(size=Y.shape)
+Y /= np.linalg.norm(Y, axis=1, keepdims=True)
+M = Sphere(2)
+y = MetricData(M, Y)
+
+forest = BaggedRegressor(
+    estimator=Tree(split_type="2means", impurity_method="cart", min_split_size=5),
+    n_estimators=50, bootstrap_fraction=1, bootstrap_replace=True, n_jobs=1, seed=5,
+)
+forest.fit(X, y)
+errors = forest.oob_errors()  # One great-circle distance per training observation.
+alpha = 0.1  # Chosen significance level.
+radius = np.quantile(errors, 1 - alpha, method="inverted_cdf")
+
+x_new = np.array([[0.0]])
+center = forest.predict(x_new)  # A length-3 array for a single covariate value.
+z = np.array([1.0, 0.0, 0.0])  # A candidate response on S^2.
+inside = M.d(center, z) <= radius
+print("center", center, "radius", radius, "candidate inside", inside)
+```
+
+The prediction ball at `x_new` consists of all unit vectors `z` satisfying `M.d(center, z) <= radius`. Distances and the radius are measured in radians. The radius is the empirical `(1 - alpha)`-quantile of the OOB errors, using the same `inverted_cdf` convention as the simulation script.
+
 ## How to reproduce the result files
 Many of the experiments were conducted in a cluster. For this reason, the data and the results are divided by blocks. To run `metricspace_results.py` files, do
 ```
