@@ -30,11 +30,11 @@ Below is a simple scheme of the distribution of the library:
 
 ## Dependencies
 
-The documented environment uses Python **3.9.9**. The example below uses the versions listed in `requirements.txt` for NumPy **1.26.4**, SciPy **1.13.1**, scikit-learn **1.3.1**, geomstats **2.8.0**, joblib **1.4.0**, tqdm **4.67.1**, and geopy **2.4.1** (imported by `pyfrechet.metric_spaces`). `requirements.txt` is a full environment listing, including non-Python packages. Use it as a version reference when preparing the environment.
+The example below was tested with Python 3.9.9. The `requirements.txt` file contains a complete list of the packages and their versions in the environment used for this project.
 
 ## Minimal example with spherical responses
 
-Run this code in a Python session started from the repository root to use the bundled `pyfrechet/`. It follows the fitting and OOB-radius calculation in `simulations_sphere/sphere_results.py`, using a small synthetic sample and 50 trees.
+Run the following example from the repository root to use the bundled `pyfrechet` code.
 
 ```python
 import numpy as np
@@ -67,7 +67,7 @@ inside = M.d(center, z) <= radius
 print("center", center, "radius", radius, "candidate inside", inside)
 ```
 
-The prediction ball at `x_new` consists of all unit vectors `z` satisfying `M.d(center, z) <= radius`. Distances and the radius are measured in radians. The radius is the empirical `(1 - alpha)`-quantile of the OOB errors, using the same `inverted_cdf` convention as the simulation script.
+The prediction ball consists of all points on the sphere within geodesic distance `radius` of `center`.
 
 ## How to reproduce the result files
 Many of the experiments were conducted in a cluster. For this reason, the data and the results are divided by blocks. To run `metricspace_results.py` files, do
