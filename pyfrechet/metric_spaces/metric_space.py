@@ -36,6 +36,7 @@ class MetricSpace(metaclass=ABCMeta):
 
     def frechet_mean(self, y, w=None):
         w = coalesce_weights(w, y)
+        w = w / w.sum()  # weighted Fréchet mean is invariant to the scale of w; closed forms such as w.dot(y) assume sum(w) = 1
         return self._frechet_mean(y, w)
     
     def frechet_var(self, y, w=None):
