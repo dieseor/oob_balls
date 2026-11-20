@@ -432,7 +432,7 @@ def calculate_type_iii_coverage(coverage_df, sample_sizes, sigma_values, B=500, 
 
 def format_cell(value, target_coverage=0.95, n_trials=1000, confidence_level=0.95):
     """
-    Format cell with underline if mean coverage falls outside binomial proportion CI
+    Underline when the Wilson interval for observed coverage excludes the nominal level
     
     Parameters:
     value: string in format "mean (std)"
@@ -446,15 +446,11 @@ def format_cell(value, target_coverage=0.95, n_trials=1000, confidence_level=0.9
     pb_std = pb_std.strip("()")
     pb_std = f"({float(pb_std):.2f})"
     
-    # Calculate expected number of successes for target coverage
-    expected_successes = int(target_coverage * n_trials)
-    
-    # Use scipy.stats.binomtest to get proportion confidence interval
-    binom_result = stats.binomtest(expected_successes, n_trials)
-    lower_bound, upper_bound = binom_result.proportion_ci(confidence_level=confidence_level)
-    
-    # Check if mean falls outside the confidence interval
-    if mean_val < lower_bound or mean_val > upper_bound:
+    observed_successes = round(mean_val * n_trials)
+    interval = stats.binomtest(observed_successes, n_trials).proportion_ci(
+        confidence_level=confidence_level, method='wilson'
+    )
+    if not interval.low <= target_coverage <= interval.high:
         # Underline the mean value in LaTeX
         pb_mean = f"\\underline{{{pb_mean}}}"
     
@@ -4426,7 +4422,9 @@ def create_sunspot_spheroid_balls_plot(data_file='sunspots/results/hypothesis_re
         data_23 = np.load(f, allow_pickle=True).item()
     
     y_test_sphere = data_23['test_data']['y']
-    preds_sphere = data_23['predictions']['spheroid_0.5_1']
+    preds_sphere = data_23['predictions']['sphere']
+    spheroid = f'spheroid_{a}_{c:g}'
+    preds_spheroid = data_23['predictions'][spheroid]
     
     # Set up the figure
     fig = plt.figure()
@@ -4441,7 +4439,7 @@ def create_sunspot_spheroid_balls_plot(data_file='sunspots/results/hypothesis_re
     indices = [8, 14, 21, 23, 24, 25, 26, 27, 28, 32, 33, 35, 36, 40, 41, 42, 94, 96,
                123, 125, 167, 255, 256, 266, 336, 409]
 
-    new_indices = [idx for idx in indices if preds_sphere[idx][1] >= 0]
+    new_indices = [idx for idx in indices if preds_spheroid[idx][1] >= 0]
     
     # Create metric spaces
     M_sphere = Sphere(2)
@@ -4454,16 +4452,17 @@ def create_sunspot_spheroid_balls_plot(data_file='sunspots/results/hypothesis_re
                    indices_to_plot=new_indices, 
                    Dalpha=data_23['oob_quantile']['sphere'],
                    ax=ax, 
-                   color='green', 
+                   color='green',
+                   observed_color='#DFA700',
                    alpha=0.1, 
                    N_points=1000000)
     
     # Then plot the spheroid balls (in blue)
     sphere_custom_centers_plot_OOB_balls_parallel(
         M=M_spheroid,
-        points=sphere_to_spheroid(preds_sphere[new_indices], a=a, c=c),
+        points=sphere_to_spheroid(preds_spheroid[new_indices], a=a, c=c),
         true_y=y_test_sphere[new_indices],
-        Dalpha=data_23['oob_quantile']['spheroid_0.5_1'],
+        Dalpha=data_23['oob_quantile'][spheroid],
         ax=ax,
         a=a,
         c=c,
@@ -5911,7 +5910,7 @@ def conf_all_results():
 
     return coverage_df
 
-def ratio_compare_radius_dimension(save_path):
+def ratio_compare_radius_dimension(save_path, oob=None, sc=None):
     """
     Plot the relative error of Split-Conformal to Prediction Ball radii across different dimensions and N values.
     Relative error = (SC_radius - PB_radius) / PB_radius * 100 for matched samples.
@@ -5942,8 +5941,8 @@ def ratio_compare_radius_dimension(save_path):
         return pd.DataFrame(error_data)
     
     # Load the data
-    pb_radius_df = pb_radius_results()
-    conf_radius_df = conf_radius_results()
+    pb_radius_df = pb_radius_results() if oob is None else oob
+    conf_radius_df = conf_radius_results() if sc is None else sc
     
     # Extract alpha-specific data (assuming alpha=0.1 as in original code)
     pb_radius_df_alpha_1 = pb_radius_df.copy()
@@ -6037,7 +6036,7 @@ def ratio_compare_radius_dimension(save_path):
         save_plot_png_format(fig, save_path, filename_base, dpi=300, bbox_inches='tight')
         plt.show()
 
-def ratio_compare_volume_dimension(save_path):
+def ratio_compare_volume_dimension(save_path, oob=None, sc=None):
     """
     Plot the relative error of Split-Conformal to Prediction Ball volumes across different dimensions and N values.
     Relative error = (SC_volume - PB_volume) / PB_volume * 100 for matched samples.
@@ -6068,9 +6067,11 @@ def ratio_compare_volume_dimension(save_path):
         
         return pd.DataFrame(error_data)
     
+    corrected = oob is not None and sc is not None
+
     # Load the data
-    pb_vol_df = pb_vol_results()
-    conf_vol_df = conf_vol_results()
+    pb_vol_df = pb_vol_results() if oob is None else oob
+    conf_vol_df = conf_vol_results() if sc is None else sc
     
     # Extract alpha-specific data (assuming alpha=0.1 as in original code)
     pb_vol_df_alpha_1 = pb_vol_df.copy()
@@ -6177,7 +6178,10 @@ def ratio_compare_volume_dimension(save_path):
         # Create legend for N values (only on right subplot)
         legend_handles = [mpatches.Patch(color=n_colors[i], label=f'Train size: {n_val}') 
                          for i, n_val in enumerate(n_values)]
-        ax2.legend(handles=legend_handles, loc='upper right', fontsize=9)
+        if corrected:
+            ax2.legend(handles=legend_handles, loc='upper left', bbox_to_anchor=(0.15, 1), fontsize=9)
+        else:
+            ax2.legend(handles=legend_handles, loc='upper right', fontsize=9)
         
         # Style both subplots
         sns.despine(ax=ax1, bottom=True)
@@ -6204,7 +6208,11 @@ def ratio_compare_volume_dimension(save_path):
         ax2.grid(False)
         
         # Set different y-limits for each subplot based on the data ranges
-        if alpha_level == 0.01:
+        if corrected:
+            ax1.set_ylim(-50, 160)
+            ax2.set_ylim(-150, 8000)
+            fig.tight_layout()
+        elif alpha_level == 0.01:
             ax1.set_ylim(-50, 100)    # Adjust for dimension 1
             ax2.set_ylim(-100, 2000)  # Adjust for dimensions 5,10
         elif alpha_level == 0.05:
@@ -6376,13 +6384,13 @@ def generate_statistical_latex_table(combined_results):
     
     print(area_row + " \\\\")
     
-    # Coverage row (placeholder - would need actual coverage calculation)
+    coverage = combined_results['weighted_coverage_spheroids']
     coverage_row = "Coverage"
     for i in oblate_indices:
-        coverage_row += " & $89.5$"  # Placeholder
-    coverage_row += " & $89.3$"  # Sphere placeholder
+        coverage_row += f" & ${100 * coverage[i]:.1f}$"
+    coverage_row += f" & ${100 * combined_results['weighted_coverage_sphere']:.1f}$"
     for i in prolate_indices:
-        coverage_row += " & $89.5$"  # Placeholder
+        coverage_row += f" & ${100 * coverage[i]:.1f}$"
     print(coverage_row + " \\\\")
     
     # MSE p-value row
@@ -6523,7 +6531,7 @@ def canonical_lattice(n: int) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     return x, y, z
 
 def plot_OOB_balls(M, true_y: np.ndarray, predictions: np.ndarray, indices_to_plot: list[int],
-                   Dalpha: float, ax, color='deepskyblue', alpha=0.1, N_points: int = 2000) -> None:
+                   Dalpha: float, ax, color='deepskyblue', alpha=0.1, N_points: int = 2000, observed_color='blue') -> None:
     """
     Plot OOB balls using canonical lattice sampling for the sphere.
     
@@ -6562,7 +6570,7 @@ def plot_OOB_balls(M, true_y: np.ndarray, predictions: np.ndarray, indices_to_pl
 
         # Plot the prediction and true value
         ax.scatter3D(center[0], center[1], center[2], marker='x', color='red', s=30, alpha=1)
-        ax.scatter3D(true_y[index_to_plot, 0], true_y[index_to_plot, 1], true_y[index_to_plot, 2], marker='o', s=30, alpha=1, color='blue')
+        ax.scatter3D(true_y[index_to_plot, 0], true_y[index_to_plot, 1], true_y[index_to_plot, 2], marker='o', s=30, alpha=1, color=observed_color)
         ax.view_init(20, 90)
 
 def area_pred_ball(M, radius, total_points):
@@ -6642,14 +6650,12 @@ def sphere_custom_centers_plot_OOB_balls_parallel(M, points, true_y, Dalpha, ax,
     def compute_chunk_distances(chunk_data, center):
         """Compute distances for one chunk of points to one center"""
         chunk_idx, chunk_points = chunk_data
-        try:
-            # This is the expensive operation we're parallelizing
-            chunk_distances = M.d(chunk_points, center)
-            chunk_mask = chunk_distances <= Dalpha
-            chunk_mask = chunk_mask.squeeze()
-            return chunk_idx, chunk_mask, chunk_points[chunk_mask]
-        except Exception as e:
-            return chunk_idx, np.array([]), np.array([]).reshape(0, 3)
+        # Straight-line distance is a lower bound on geodesic distance.
+        candidates = chunk_points[np.linalg.norm(chunk_points - center, axis=1) <= Dalpha + 1e-12]
+        if not len(candidates):
+            return chunk_idx, np.array([]), candidates
+        chunk_mask = np.asarray(M.d(candidates, center)).reshape(-1) <= Dalpha
+        return chunk_idx, chunk_mask, candidates[chunk_mask]
     
     # Process each center
     all_center_results = []

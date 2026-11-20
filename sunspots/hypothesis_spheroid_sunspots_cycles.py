@@ -242,7 +242,7 @@ def task(cyc):
     }
 
     # Get sphere predictions (baseline)
-    sphere_preds, sphere_errors, sphere_areas, sphere_coverage, sphere_best_params, oob_quantile = train_and_predict(X_train, X_test, y_train, y_test, 1, 1)
+    sphere_preds, sphere_errors, sphere_areas, sphere_coverage, oob_quantile, sphere_best_params = train_and_predict(X_train, X_test, y_train, y_test, 1, 1)
     # sphere_preds, sphere_errors, sphere_areas, sphere_coverage, oob_quantile = train_and_predict(X_train, X_test, y_train, y_test, 1, 1)
 
     results['predictions']['sphere'] = sphere_preds
@@ -257,7 +257,7 @@ def task(cyc):
         print(f"Processing spheroid with a={a}, c={c}")
         
         # Train and get predictions
-        spheroid_preds, spheroid_errors, spheroid_areas, spheroid_coverage, spheroid_best_params, oob_quantile = train_and_predict(X_train, X_test, y_train, y_test, a, c)
+        spheroid_preds, spheroid_errors, spheroid_areas, spheroid_coverage, oob_quantile, spheroid_best_params = train_and_predict(X_train, X_test, y_train, y_test, a, c)
         # spheroid_preds, spheroid_errors, spheroid_areas, spheroid_coverage, oob_quantile = train_and_predict(X_train, X_test, y_train, y_test, a, c)
 
         # Store predictions, errors, areas, coverage, and best params

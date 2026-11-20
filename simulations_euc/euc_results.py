@@ -1,6 +1,7 @@
 import sys, os
 import pickle
 import numpy as np
+from sc_radius import split_conformal_radii
 from scipy.stats import beta
 import time
 import joblib
@@ -111,7 +112,7 @@ def task(file):
     conf_forest = tune_forest(X_train, y_train, param_grid) 
     # Radii 
     test_preds = conf_forest.predict(X_test)
-    quantile = np.percentile(np.abs(y_test - test_preds), (1 - np.array([0.01, 0.05, 0.1])) * 100, method='inverted_cdf')
+    quantile = split_conformal_radii(np.abs(y_test - test_preds))
     end_time = time.time()
     conf_time = end_time - start_time
 

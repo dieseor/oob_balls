@@ -3,6 +3,7 @@ sys.path.append(os.path.dirname(__file__))
 sys.path.append(os.getcwd())
 import pickle
 import numpy as np
+from sc_radius import split_conformal_radii
 import time
 from joblib import Parallel, delayed
 from sklearn.ensemble import RandomForestRegressor
@@ -78,7 +79,7 @@ def task(file):
     # Fit the best forest
     # best_forest.fit(X, y_train)
     test_preds = best_forest.predict(X_test)
-    quantile = np.percentile(M.d(MetricData(M, y_test), test_preds), (1 - np.array([0.01, 0.05, 0.1])) * 100, method='inverted_cdf')
+    quantile = split_conformal_radii(M.d(MetricData(M, y_test), test_preds))
     volume = volume_of_n_ball(R = quantile, dim = dim)
     # Store results
     results = {

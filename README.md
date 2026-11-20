@@ -16,7 +16,9 @@ For each metric space (`simulations_metricspace/`), there is a common structure:
 
 In the Euclidean space, there are additional files to generate the results to compare the radii and volumes of OOB prediction balls and split-conformal balls for different dimensionalities of the response. On the hyperboloid, the data is generated using R, since the library `rotasym` is used to sample from the von Mises-Fisher distribution. For this reason, the data for Types II and IV is also generated in R using a separate script.
 
-To generate **all** the figures and tables displayed in the paper, please run `main_results.ipynb`. Even though the results and data files are reproducible, they are also included in the repository, so that the figures can be generated easily (some results are computationally expensive to obtain).
+Run `main_results.ipynb` from the repository root to generate the figures and tables from the saved results. The coverage and radius files (`coverage.npz`) sit in each simulation folder. The Euclidean notebook uses the saved OOB results and the corrected split-conformal results for the scalar comparison, and both corrected campaigns for the radius and volume comparison. The sunspot outputs are in `sunspots/results/` and the FRF results are in `simulations_sphere/frf_results.csv`. The figures are saved in `results_plots/`.
+
+The notebook reads these files directly. Running the simulation scripts is only necessary to generate new results. The compressed files keep results by replicate and preserve the order used in the paper's coverage tables. For SPD Types I and III, `simulations_SPD/coverage_i_iii.csv` stores the coverage estimates and bootstrap standard deviations.
 
 Below is a simple scheme of the distribution of the library:
 
@@ -24,7 +26,7 @@ Below is a simple scheme of the distribution of the library:
 ├── main_results.ipynb          # Main notebook reproducing all paper results.
 ├── support_functions.py        # Support functions for main_results.ipynb.
 ├── pyfrechet/                  # Modification and extension of pyfrechet to implement random forests in metric spaces.
-├── simulations_*/              # Raw simulation data and scripts for each metric space.
+├── simulations_*/              # Data generators, simulation scripts and saved results.
 └── requirements.txt            # Python (3.9.9) dependencies.
 ```
 
@@ -70,8 +72,7 @@ print("center", center, "radius", radius, "candidate inside", inside)
 The prediction ball consists of all points on the sphere within geodesic distance `radius` of `center`.
 
 ## How to reproduce the result files
-Many of the experiments were conducted in a cluster. For this reason, the data and the results are divided by blocks. To run `metricspace_results.py` files, do
+Many of the experiments were conducted in a cluster. The simulation scripts use numbered blocks, with data and output paths relative to the repository root. Run the corresponding data generators before launching a block if its input files are missing. For example:
 ```
-python metricspace_results.py b
+python simulations_sphere/sphere_results.py 1
 ```
-where b is the block number.

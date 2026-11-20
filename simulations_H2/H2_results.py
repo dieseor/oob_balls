@@ -29,6 +29,7 @@ neg_mse = make_scorer(mse, greater_is_better=False)
 SIMULATION_DIR = Path(__file__).parent
 DATA_DIR = SIMULATION_DIR / 'data'
 RESULTS_DIR = SIMULATION_DIR / 'results'
+RESULTS_DIR.mkdir(exist_ok=True)
 TYPE_I_DIR = SIMULATION_DIR / 'TypeIdata'
 TYPE_II_DIR = SIMULATION_DIR / 'TypeIIdata'
 TYPE_III_DIR = SIMULATION_DIR / 'TypeIIIdata'
