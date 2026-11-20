@@ -6322,44 +6322,44 @@ def generate_statistical_latex_table(combined_results):
     print("\\centering")
     print("\\begin{tabular}{lccccccccc|c|ccc}")
     print("\\toprule")
-    print("\\multicolumn{1}{c}{} & \\multicolumn{9}{c}{Oblate ($S_{1, \\lambda}$)} &  \\multicolumn{1}{c}{Sphere} & \\multicolumn{3}{c}{Prolate ($S_{\\lambda, 1}$)} \\\\")
+    print("\\multicolumn{1}{c}{} & \\multicolumn{9}{c}{Prolate} &  \\multicolumn{1}{c}{Sphere} & \\multicolumn{3}{c}{Oblate} \\\\")
     print(" \\cmidrule(lr){2-10} \\cmidrule(lr){11-11}  \\cmidrule(lr){12-14}")
     
-    # Lambda header row
-    lambda_header = "\\multicolumn{1}{c}{$\\lambda$}"
-    oblate_configs = [(a, c) for a, c in configs if a < 1]
-    prolate_configs = [(a, c) for a, c in configs if a > 1]
+    # Parameter header row
+    a_header = "\\multicolumn{1}{c}{$a$}"
+    prolate_configs = [(a, c) for a, c in configs if a < 1]
+    oblate_configs = [(a, c) for a, c in configs if a > 1]
+    
+    # Add prolate columns
+    for a, c in prolate_configs:
+        if a == 0.5:
+            a_header += f" & $\\mathbf{{{a}}}$"
+        else:
+            a_header += f" & ${a}$"
+    
+    # Add sphere column
+    a_header += " & $1.0$"
     
     # Add oblate columns
     for a, c in oblate_configs:
-        if a == 0.5:
-            lambda_header += f" & $\\mathbf{{{a}}}$"
-        else:
-            lambda_header += f" & ${a}$"
+        a_header += f" & ${a}$"
     
-    # Add sphere column
-    lambda_header += " & $1.0$"
-    
-    # Add prolate columns  
-    for a, c in prolate_configs:
-        lambda_header += f" & ${a}$"
-    
-    print(lambda_header + " \\\\")
+    print(a_header + " \\\\")
     print("\\midrule")
     
     # MSE differences row
     mse_row = "$\\Delta_{\\mathrm{MSE}}$"
-    oblate_indices = [i for i, (a, c) in enumerate(configs) if a < 1]
-    prolate_indices = [i for i, (a, c) in enumerate(configs) if a > 1]
+    prolate_indices = [i for i, (a, c) in enumerate(configs) if a < 1]
+    oblate_indices = [i for i, (a, c) in enumerate(configs) if a > 1]
     
-    for i in oblate_indices:
+    for i in prolate_indices:
         delta = combined_results['delta_mse_percent'][i]
         mse_row += f" & ${delta:.1f}$"
     
     # Sphere column (reference, always 0.0)
     mse_row += " & $0.0$"
     
-    for i in prolate_indices:
+    for i in oblate_indices:
         delta = combined_results['delta_mse_percent'][i]
         mse_row += f" & ${delta:.1f}$"
     
@@ -6368,9 +6368,9 @@ def generate_statistical_latex_table(combined_results):
     # Area differences row
     area_row = "$\\Delta_{\\mathrm{area}}$"
     
-    for i in oblate_indices:
+    for i in prolate_indices:
         delta = combined_results['delta_area_percent'][i]
-        if configs[i][0] == 0.5:  # Bold for lambda = 0.5
+        if configs[i][0] == 0.5:  # Bold for a = 0.5
             area_row += f" & $\\mathbf{{{delta:.1f}}}$"
         else:
             area_row += f" & ${delta:.1f}$"
@@ -6378,7 +6378,7 @@ def generate_statistical_latex_table(combined_results):
     # Sphere column (reference, always 0.0)
     area_row += " & $0.0$"
     
-    for i in prolate_indices:
+    for i in oblate_indices:
         delta = combined_results['delta_area_percent'][i]
         area_row += f" & ${delta:.1f}$"
     
@@ -6386,17 +6386,17 @@ def generate_statistical_latex_table(combined_results):
     
     coverage = combined_results['weighted_coverage_spheroids']
     coverage_row = "Coverage"
-    for i in oblate_indices:
+    for i in prolate_indices:
         coverage_row += f" & ${100 * coverage[i]:.1f}$"
     coverage_row += f" & ${100 * combined_results['weighted_coverage_sphere']:.1f}$"
-    for i in prolate_indices:
+    for i in oblate_indices:
         coverage_row += f" & ${100 * coverage[i]:.1f}$"
     print(coverage_row + " \\\\")
     
     # MSE p-value row
     p_mse_row = "$p_{\\mathrm{MSE}}$"
     
-    for i in oblate_indices:
+    for i in prolate_indices:
         p_val = combined_results['p_adjusted_mse'][i]
         if p_val < 0.001:
             p_mse_row += " & $0.0$"
@@ -6412,7 +6412,7 @@ def generate_statistical_latex_table(combined_results):
     # Sphere column
     p_mse_row += " & ---"
     
-    for i in prolate_indices:
+    for i in oblate_indices:
         p_val = combined_results['p_adjusted_mse'][i]
         if p_val < 0.001:
             p_mse_row += " & $0.00$"
@@ -6429,7 +6429,7 @@ def generate_statistical_latex_table(combined_results):
     # Area p-value row
     p_area_row = "$p_{\\mathrm{area}}$"
     
-    for i in oblate_indices:
+    for i in prolate_indices:
         p_val = combined_results['p_adjusted_area'][i]
         if p_val < 0.001:
             p_area_row += " & $0.00$"
@@ -6444,7 +6444,7 @@ def generate_statistical_latex_table(combined_results):
     # Sphere column
     p_area_row += " & ---"
     
-    for i in prolate_indices:
+    for i in oblate_indices:
         p_val = combined_results['p_adjusted_area'][i]
         if p_val < 0.001:
             p_area_row += " & $0.00$"
@@ -6460,7 +6460,7 @@ def generate_statistical_latex_table(combined_results):
     
     print("\\bottomrule")
     print("\\end{tabular}")
-    print("\\caption{For each $\\lambda$ specification, the errors, areas, and coverages were calculated on the test points of cycles $21$--$23$, and the reported values are weighted means across the three cycles, with weights proportional to the number of test points on each cycle. The areas correspond to OOB balls centered on the predicted value of the test points (measured in $100 \\times R_\\odot^2$, where $R_\\odot^2$ represents units of solar radius squared). The relative MSE difference $\\Delta_{\\mathrm{MSE}}$ and the relative mean area difference $\\Delta_{\\mathrm{area}}$ (both in $\\%$) were calculated with respect to the balls on the sphere. The reported coverage corresponds to Type II (in \\%) for $\\alpha=0.10$. The $p$-value of the one-sided paired $t$-test with alternative hypothesis $H_1: \\mathrm{MSE}_{\\mathbb{S}^2} < \\mathrm{MSE}_{S_{1, \\lambda}}$ is $p_{\\mathrm{MSE}}$. For $p_{\\mathrm{area}}$, we considered a one-sided paired $t$-test with alternative hypothesis $H_1: \\mathrm{area}_{\\mathbb{S}^2} > \\mathrm{area}_{S_{1, \\lambda}}$, to test the equality of mean areas. Benjamini--Yekutieli \\citep{Benjamini2001} correction is applied to the p-values at level $\\alpha = 0.01$.}")
+    print("\\caption{For each $a$, the errors, areas, and coverages were calculated on the test points of cycles $21$--$23$, and the reported values are weighted means across the three cycles, with weights proportional to the number of test points on each cycle. The areas correspond to OOB balls centered on the predicted value of the test points (measured in $100 \\times R_\\odot^2$, where $R_\\odot^2$ represents units of solar radius squared). The relative MSE difference $\\Delta_{\\mathrm{MSE}}$ and the relative mean area difference $\\Delta_{\\mathrm{area}}$ (both in $\\%$) were calculated with respect to the balls on the sphere. The reported coverage corresponds to Type II (in \\%) for $\\alpha=0.10$. The $p$-value of the one-sided paired $t$-test with alternative hypothesis $H_1: \\mathrm{MSE}_{\\mathbb{S}^2} < \\mathrm{MSE}_{S_{a,1}}$ is $p_{\\mathrm{MSE}}$. For $p_{\\mathrm{area}}$, we considered a one-sided paired $t$-test with alternative hypothesis $H_1: \\mathrm{area}_{\\mathbb{S}^2} > \\mathrm{area}_{S_{a,1}}$, to test the equality of mean areas. Benjamini--Yekutieli \\citep{Benjamini2001} correction is applied to the p-values at level $\\alpha = 0.01$.}")
     print("\\end{table}")
 
 def load_sunspot_hypothesis_results(results_path='sunspots/results/combined_hypothesis_results.npy'):

@@ -432,27 +432,20 @@ def generate_latex_table(combined_results, save_to_file=True):
     """
     configs = combined_results['config_params']
     
-    # Separate oblate and prolate configurations
-    oblate_configs = [(i, a, c) for i, (a, c) in enumerate(configs) if a < 1]
-    prolate_configs = [(i, a, c) for i, (a, c) in enumerate(configs) if a >= 1 and not (a == 1 and c == 1)]
+    # Separate prolate and oblate configurations
+    prolate_configs = [(i, a, c) for i, (a, c) in enumerate(configs) if a < 1]
+    oblate_configs = [(i, a, c) for i, (a, c) in enumerate(configs) if a > 1]
     
     # Structure the table data
     table_data = {
-        'oblate_configs': oblate_configs,
         'prolate_configs': prolate_configs,
+        'oblate_configs': oblate_configs,
+        'prolate_lambdas': [a for i, a, c in prolate_configs],
         'oblate_lambdas': [a for i, a, c in oblate_configs],
-        'prolate_lambdas': [c for i, a, c in prolate_configs],
         'sphere_data': {
             'weighted_mse': combined_results['weighted_mse_sphere'],
             'weighted_area': combined_results['weighted_area_sphere'],
             'weighted_coverage': combined_results['weighted_coverage_sphere']
-        },
-        'oblate_data': {
-            'delta_mse_percent': [combined_results['delta_mse_percent'][i] for i, a, c in oblate_configs],
-            'delta_area_percent': [combined_results['delta_area_percent'][i] for i, a, c in oblate_configs],
-            'weighted_coverage': [combined_results['weighted_coverage_spheroids'][i] for i, a, c in oblate_configs],
-            'p_adjusted_mse': [combined_results['p_adjusted_mse'][i] for i, a, c in oblate_configs],
-            'p_adjusted_area': [combined_results['p_adjusted_area'][i] for i, a, c in oblate_configs]
         },
         'prolate_data': {
             'delta_mse_percent': [combined_results['delta_mse_percent'][i] for i, a, c in prolate_configs],
@@ -460,6 +453,13 @@ def generate_latex_table(combined_results, save_to_file=True):
             'weighted_coverage': [combined_results['weighted_coverage_spheroids'][i] for i, a, c in prolate_configs],
             'p_adjusted_mse': [combined_results['p_adjusted_mse'][i] for i, a, c in prolate_configs],
             'p_adjusted_area': [combined_results['p_adjusted_area'][i] for i, a, c in prolate_configs]
+        },
+        'oblate_data': {
+            'delta_mse_percent': [combined_results['delta_mse_percent'][i] for i, a, c in oblate_configs],
+            'delta_area_percent': [combined_results['delta_area_percent'][i] for i, a, c in oblate_configs],
+            'weighted_coverage': [combined_results['weighted_coverage_spheroids'][i] for i, a, c in oblate_configs],
+            'p_adjusted_mse': [combined_results['p_adjusted_mse'][i] for i, a, c in oblate_configs],
+            'p_adjusted_area': [combined_results['p_adjusted_area'][i] for i, a, c in oblate_configs]
         }
     }
     
@@ -470,73 +470,73 @@ def generate_latex_table(combined_results, save_to_file=True):
     latex_lines.append("\\centering")
     latex_lines.append("\\begin{tabular}{lccccccccc|c|ccc}")
     latex_lines.append("\\toprule")
-    latex_lines.append("\\multicolumn{1}{c}{} & \\multicolumn{9}{c}{Oblate ($S_{1, \\lambda}$)} &  \\multicolumn{1}{c}{Sphere} & \\multicolumn{3}{c}{Prolate ($S_{\\lambda, 1}$)} \\\\")
+    latex_lines.append("\\multicolumn{1}{c}{} & \\multicolumn{9}{c}{Prolate} &  \\multicolumn{1}{c}{Sphere} & \\multicolumn{3}{c}{Oblate} \\\\")
     latex_lines.append(" \\cmidrule(lr){2-10} \\cmidrule(lr){11-11}  \\cmidrule(lr){12-14}")
     
-    # Lambda header
-    lambda_header = "\\multicolumn{1}{c}{$\\lambda$}"
-    for i, a, c in oblate_configs:
-        if a == 0.5:
-            lambda_header += f" & $\\mathbf{{{a}}}$"
-        else:
-            lambda_header += f" & ${a}$"
-    lambda_header += " & $1.0$"  # sphere
+    # Parameter header
+    a_header = "\\multicolumn{1}{c}{$a$}"
     for i, a, c in prolate_configs:
-        lambda_header += f" & ${c}$"
-    latex_lines.append(lambda_header + " \\\\")
+        if a == 0.5:
+            a_header += f" & $\\mathbf{{{a}}}$"
+        else:
+            a_header += f" & ${a}$"
+    a_header += " & $1.0$"  # sphere
+    for i, a, c in oblate_configs:
+        a_header += f" & ${a}$"
+    latex_lines.append(a_header + " \\\\")
     latex_lines.append("\\midrule")
     
     # MSE row
     mse_row = "$\\Delta_{\\mathrm{MSE}}$"
-    for delta in table_data['oblate_data']['delta_mse_percent']:
+    for delta in table_data['prolate_data']['delta_mse_percent']:
         mse_row += f" & ${delta:.1f}$"
     mse_row += " & $0.0$"  # sphere reference
-    for delta in table_data['prolate_data']['delta_mse_percent']:
+    for delta in table_data['oblate_data']['delta_mse_percent']:
         mse_row += f" & ${delta:.1f}$"
     latex_lines.append(mse_row + " \\\\")
     
     # Area row
     area_row = "$\\Delta_{\\mathrm{area}}$"
-    for j, delta in enumerate(table_data['oblate_data']['delta_area_percent']):
-        if table_data['oblate_lambdas'][j] == 0.5:  # Bold for lambda = 0.5
+    for j, delta in enumerate(table_data['prolate_data']['delta_area_percent']):
+        if table_data['prolate_lambdas'][j] == 0.5:  # Bold for a = 0.5
             area_row += f" & $\\mathbf{{{delta:.1f}}}$"
         else:
             area_row += f" & ${delta:.1f}$"
     area_row += " & $0.0$"  # sphere reference
-    for delta in table_data['prolate_data']['delta_area_percent']:
+    for delta in table_data['oblate_data']['delta_area_percent']:
         area_row += f" & ${delta:.1f}$"
     latex_lines.append(area_row + " \\\\")
     
     # Coverage row
     coverage_row = "Coverage"
-    for coverage in table_data['oblate_data']['weighted_coverage']:
+    for coverage in table_data['prolate_data']['weighted_coverage']:
         coverage_row += f" & ${coverage * 100:.1f}$"
     coverage_row += f" & ${table_data['sphere_data']['weighted_coverage'] * 100:.1f}$"  # sphere
-    for coverage in table_data['prolate_data']['weighted_coverage']:
+    for coverage in table_data['oblate_data']['weighted_coverage']:
         coverage_row += f" & ${coverage * 100:.1f}$"
     latex_lines.append(coverage_row + " \\\\")
     
     # MSE p-value row
     p_mse_row = "$p_{\\mathrm{MSE}}$"
-    for p_val in table_data['oblate_data']['p_adjusted_mse']:
+    for p_val in table_data['prolate_data']['p_adjusted_mse']:
         p_mse_row += f" & ${p_val:.10f}$"
     p_mse_row += " & ---"  # sphere
-    for p_val in table_data['prolate_data']['p_adjusted_mse']:
+    for p_val in table_data['oblate_data']['p_adjusted_mse']:
         p_mse_row += f" & ${p_val:.10f}$"
     latex_lines.append(p_mse_row + " \\\\")
     
     # Area p-value row
     p_area_row = "$p_{\\mathrm{area}}$"
-    for p_val in table_data['oblate_data']['p_adjusted_area']:
+    for p_val in table_data['prolate_data']['p_adjusted_area']:
         p_area_row += f" & ${p_val:.10f}$"
     p_area_row += " & ---"  # sphere
-    for p_val in table_data['prolate_data']['p_adjusted_area']:
+    for p_val in table_data['oblate_data']['p_adjusted_area']:
         p_area_row += f" & ${p_val:.10f}$"
     latex_lines.append(p_area_row + " \\\\")
     
     latex_lines.append("\\bottomrule")
     latex_lines.append("\\end{tabular}")
-    latex_lines.append("\\caption{For each $\\lambda$ specification, the errors, areas, and coverages were calculated on the test points of cycles $21$--$23$, and the reported values are weighted means across the three cycles, with weights proportional to the number of test points on each cycle. The areas correspond to OOB balls centered on the test points (measured in $100 \\times R_\\odot^2$). The relative MSE difference $\\Delta_{\\mathrm{MSE}}$ and the relative mean area difference $\\Delta_{\\mathrm{area}}$ (both in $\\%$) were calculated with respect to the balls on the sphere. The reported coverage corresponds to Type II (in \\%) for $\\alpha=0.10$. The $p$-value of the two-sided paired $t$-test with null hypothesis $H_0: \\mathrm{MSE}_{\\mathbb{S}^2} = \\mathrm{MSE}_{S_{1, \\lambda}}$ is $p_{\\mathrm{MSE}}$. For $p_{\\mathrm{area}}$, we considered a one-sided paired $t$-test with alternative hypothesis $H_1: \\mathrm{area}_{\\mathbb{S}^2} > \\mathrm{area}_{S_{1, \\lambda}}$, to test the equality of mean areas.}\\label{tab:spheroid_metrics}")
+    latex_lines.append("\\caption{For each $a$, the errors, areas, and coverages were calculated on the test points of cycles $21$--$23$, and the reported values are weighted means across the three cycles, with weights proportional to the number of test points on each cycle. The areas correspond to OOB balls centered on the test points (measured in $100 \\times R_\\odot^2$). The relative MSE difference $\\Delta_{\\mathrm{MSE}}$ and the relative mean area difference $\\Delta_{\\mathrm{area}}$ (both in $\\%$) were calculated with respect to the balls on the sphere. The reported coverage corresponds to Type II (in \\%) for $\\alpha=0.10$. The $p$-value of the two-sided paired $t$-test with null hypothesis $H_0: \\mathrm{MSE}_{\\mathbb{S}^2} = \\mathrm{MSE}_{S_{a,1}}$ is $p_{\\mathrm{MSE}}$. For $p_{\\mathrm{area}}$, we considered a one-sided paired $t$-test with alternative hypothesis $H_1: \\mathrm{area}_{\\mathbb{S}^2} > \\mathrm{area}_{S_{a,1}}$, to test the equality of mean areas.}\\label{tab:spheroid_metrics}")
     latex_lines.append("\\end{table}")
     
     latex_table = '\n'.join(latex_lines)
